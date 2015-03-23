@@ -308,6 +308,27 @@ class RedisStorage(Storage):
         """
         return int((self.storage.ttl(key) or 0) + time.time())
 
+class BlockingRedisStorage(RedisStorage):
+    """
+    rate limit storage with blocking redis pool as backend
+    """
+
+    STORAGE_SCHEME = "blockingredis"
+
+    def __init__(self, uri, **kwargs):
+        """
+        :param str redis_url: url of the form 'blockingredis://host:port'
+        :raise ConfigurationError: when the redis library is not available
+         or if the redis host cannot be pinged.
+        """
+        redis_pool = get_dependency("redis.connection.BlockingConnectionPool")
+        if not redis_pool:
+            raise ConfigurationError("redis prerequisite not available") # pragma: no cover
+        uri = uri[8:]
+        self.storage = redis_pool.from_url(uri, **kwargs)
+        self.initialize_storage(uri)
+        self.lock = threading.RLock()
+
 class MemcachedStorage(Storage):
     """
     rate limit storage with memcached as backend
