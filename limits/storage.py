@@ -321,11 +321,12 @@ class BlockingRedisStorage(RedisStorage):
         :raise ConfigurationError: when the redis library is not available
          or if the redis host cannot be pinged.
         """
-        redis_pool = get_dependency("redis.connection.BlockingConnectionPool")
-        if not redis_pool:
+        redis_client = get_dependency("redis")
+        if not redis_client:
             raise ConfigurationError("redis prerequisite not available") # pragma: no cover
         uri = uri[8:]
-        self.storage = redis_pool.from_url(uri, **kwargs)
+        redis_pool = redis_client.BlockingConnectionPool.from_url(uri, **kwargs)
+        self.storage = redis_client.Redis(connection_pool=redis_pool)
         self.initialize_storage(uri)
         self.lock = threading.RLock()
 
